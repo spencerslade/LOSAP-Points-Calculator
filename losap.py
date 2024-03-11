@@ -268,7 +268,7 @@ class MainWindow(QMainWindow):
                 self.iamr_rows_to_skip = int(n)
             except ValueError:
                 msg = "Please use a number for IAR rows to skip" \
-                    + f"\nYou entered {n}"
+                    + "\nYou entered {n}"
                 QMessageBox.information(self, "Ivalid data", msg)
                 self.iamr_rows_to_skip = 2 
             
@@ -277,7 +277,7 @@ class MainWindow(QMainWindow):
                 self.iamr_rows_end = int(n)
             except ValueError:
                 msg = "Please use a number for IAR \'Stop reading at rows\'" \
-                    + f"\nYou entered {n}"
+                    + "\nYou entered {n}"
                 QMessageBox.information(self, "Ivalid data", msg)
  
             try:
@@ -285,7 +285,7 @@ class MainWindow(QMainWindow):
                 self.losap_rows_to_skip = int(n)
             except ValueError:
                 msg = "Please use a number for CVAC sreadsheet \'Skip this number of rows\'" \
-                    + f"\nYou entered {n}"
+                    + "\nYou entered {n}"
                 QMessageBox.information(self, "Ivalid data", msg)
     
             # Member reported spreadsheets
@@ -355,7 +355,7 @@ class MainWindow(QMainWindow):
                     print(df_iamr_grouped.head(5))
                 
                 # Calculate LOSAP points
-                #   3. Tour of Duty – 20 points maximum per year
+                #   Tour of Duty; 20 points maximum per year
                 #   One-half (1/2) point for each 6 hours of scheduled duty
                 df_iamr_grouped["Tour of Duty"] = (df_iamr_grouped["Shift hours"]/12).round(2)
                 
