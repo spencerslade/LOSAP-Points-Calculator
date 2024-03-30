@@ -32,7 +32,7 @@ __demo__               = False
 __debugging__          = False
 __debuggingiar__       = False
 __debuggingepcr__      = False
-__debuggingother__     = True
+__debuggingother__     = False
 __debuggingsettings__  = False
 
 # supress future warnings
@@ -601,8 +601,8 @@ class MainWindow(QMainWindow):
                     
                     # ------------------
                     #   Misc:     One point per activity for participation in activities 
-                    df_losap_misc = df_losap_misc.groupby(['Member Name'])['Hours'].agg('count').reset_index()
-                    df_losap_misc = df_losap_misc.rename(columns={"Hours": "Misc Activity"})
+                    df_losap_misc = df_losap_misc.groupby(['Member Name'])['Points'].agg('count').reset_index()
+                    df_losap_misc = df_losap_misc.rename(columns={"Points": "Misc Activity"})
                     
                     # ------------------
                     #   Disability: Read the points from the points column & cap at 5
