@@ -1,3 +1,7 @@
+# Version history (see Github for more info)
+#   v1.0: Initial commit (3/9/2024)
+#   v1.1: Fixed Excel output and add disability column (3/30/2024) 
+
 import sys
 import os
 import warnings
@@ -28,7 +32,7 @@ __demo__               = False
 __debugging__          = False
 __debuggingiar__       = False
 __debuggingepcr__      = False
-__debuggingother__     = False
+__debuggingother__     = True
 __debuggingsettings__  = False
 
 # supress future warnings
@@ -127,10 +131,10 @@ class MainWindow(QMainWindow):
 
         # variables
         self.colnames = ["Member Name", "Training", "Drills", "Meetings", "Tour of Duty", 
-                         "Misc. Activity", "Calls Responded To", "Position Held", "Total", 
-                         "SR_Signup", "SR_Calls"]
+                         "Misc. Activity", "Calls Responded To", "Position Held", "Disability", 
+                         "Total", "SR_Signup", "SR_Calls"]
         self.colnamestoadd = ["Training", "Drills", "Meetings", "Tour of Duty", 
-                         "Misc. Activity", "Calls Responded To", "Position Held"]
+                         "Misc. Activity", "Calls Responded To", "Position Held", "Disability"]
         self.original_df = pd.DataFrame(columns=self.colnames)
         self.df = self.original_df.copy()
 
@@ -505,8 +509,9 @@ class MainWindow(QMainWindow):
                         file_path = os.path.join(directory, file)
                         #df = pd.read_excel(file_path)
                         #dfs.append(df)
-                        #if __debuggingother__:
-                            #print(file_path)
+                        if __debuggingother__:
+                            print(file_path)
+                            
                         workbook = pd.read_excel(open(file_path, 'rb'), 
                                                  sheet_name=self.losap_sheet, 
                                                  skiprows=self.losap_rows_to_skip) 
@@ -527,7 +532,7 @@ class MainWindow(QMainWindow):
                         progress_dialog.setValue(progress)
                         if progress_dialog.wasCanceled():
                             break
-                        
+                       
                         df_losap=pd.concat([df_losap, workbook], sort=False)
                         
                         
@@ -565,12 +570,7 @@ class MainWindow(QMainWindow):
                     df_losap_drills   = df_losap[df_losap['Activity']=='Drills, CMEs'].reset_index()
                     df_losap_training = df_losap[df_losap['Activity']=='Training Course'].reset_index()
                     df_losap_misc     = df_losap[df_losap['Activity']=='Miscellaneous'].reset_index()
-
-                    if __debuggingother__:
-                        print(df_losap_meetings)
-                        print(df_losap_drills)
-                        print(df_losap_training)
-                        print(df_losap_misc)
+                    df_losap_disability = df_losap[df_losap['Activity']=='Disability'].reset_index()
                     
                     #-----------------------------------------------------------
                     # Calculate points
@@ -603,7 +603,13 @@ class MainWindow(QMainWindow):
                     #   Misc:     One point per activity for participation in activities 
                     df_losap_misc = df_losap_misc.groupby(['Member Name'])['Hours'].agg('count').reset_index()
                     df_losap_misc = df_losap_misc.rename(columns={"Hours": "Misc Activity"})
-              
+                    
+                    # ------------------
+                    #   Disability: Read the points from the points column & cap at 5
+                    df_losap_disability = df_losap_disability.groupby(['Member Name'])['Points'].agg('sum').reset_index()
+                    df_losap_disability = df_losap_disability.rename(columns={"Points": "Disability"})
+                    df_losap_disability['Disability'] = df_losap_disability['Disability'].clip(upper=5.0)
+                
                     # ------------------
                     #  Self-reported points for Tour of Duty (signups)
                     #       One-half (1/2) point for each 6 hours of scheduled duty
@@ -615,14 +621,7 @@ class MainWindow(QMainWindow):
                     #  0.5 points to each call responded to, with a maximum of 25 points per year
                     df_losapSR["SR_Calls"] = (df_losapSR["SR_Calls"]/2)
                     df_losapSR['SR_Calls'] = df_losapSR['SR_Calls'].fillna(0)
-                    
-                    if __debuggingother__:
-                        print(df_losap.head(5))
-                        print(df_losap_meetings.head(10))
-                        print(df_losap_training.head(10))
-                        print(df_losap_drills.head(10))
-                        print(df_losap_misc.head(10))
-                    
+                                
                     # Merge meetings with existing DataFrame 
                     self.df = pd.merge(self.df, df_losap_meetings, how="outer", on=["Member Name", "Member Name"])
                     self.df = self.df.drop('Meetings_x', axis=1)
@@ -632,19 +631,25 @@ class MainWindow(QMainWindow):
                     self.df = pd.merge(self.df, df_losap_drills, how="outer", on=["Member Name", "Member Name"])
                     self.df = self.df.drop('Drills_x', axis=1)
                     self.df = self.df.rename(columns={'Drills_y': 'Drills'})
-
+                    
                     # Merge training with existing DataFrame 
                     self.df = pd.merge(self.df, df_losap_training, how="outer", on=["Member Name", "Member Name"])
                     self.df = self.df.drop('Training_x', axis=1)
                     self.df = self.df.rename(columns={'Training_y': 'Training'})         
-
+                    
                     # Merge misc with existing DataFrame 
                     self.df = pd.merge(self.df, df_losap_misc, how="outer", on=["Member Name", "Member Name"])
                     self.df = self.df.drop('Misc. Activity', axis=1)
-                    self.df = self.df.rename(columns={'Misc Activity': 'Misc. Activity'})  
-                    
+                    self.df = self.df.rename(columns={'Misc Activity': 'Misc. Activity'})      
+ 
+                    # Merge disability with existing DataFrame 
+                    #self.df = df_losap_disability.rename(columns={'Disability': 'Disability'})
+                    self.df = pd.merge(self.df, df_losap_disability, how="outer", on=["Member Name", "Member Name"])
+                    self.df = self.df.drop('Disability_x', axis=1)
+                    self.df = self.df.rename(columns={'Disability_y': 'Disability'})  
+
                     # Merge self-reported points with df_losapSRDataframe
-                    self.df = pd.merge(self.df, df_losapSR, how="outer", on=["Member Name", "Member Name"])
+                    self.df = pd.merge(self.df, df_losapSR, how="outer", on=["Member Name", "Member Name"]) 
                     self.df = self.df.drop(['SR_Signup_x','SR_Calls_x'], axis=1)
                     self.df = self.df.rename(columns={'SR_Signup_y': 'SR_Signup'})
                     self.df = self.df.rename(columns={'SR_Calls_y': 'SR_Calls'})
